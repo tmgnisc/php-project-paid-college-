@@ -1,0 +1,95 @@
+:root {
+  --teal: #2ec1ac;
+  --teal_hover: #279e8c;
+}
+
+* {
+  font-family: "Poppins", sans-serif;
+}
+
+.h-font {
+  font-family: "Merienda", cursive;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.custom-bg {
+  background-color: var(--teal);
+  border: 1px solid var(--teal);
+}
+
+.custom-bg:hover {
+  background-color: var(--teal_hover);
+  border-color: var(--teal_hover);
+}
+
+.h-line{
+  width: 150px;
+  margin: 0 auto;
+  height: 1.7px;
+}
+
+.custom-alert{
+  position: fixed;
+  top: 80px;
+  right: 25px;
+  z-index: 9999;
+}
+
+/* New homepage polish */
+.hero {
+  background: linear-gradient(135deg, rgba(46,193,172,0.9), rgba(17,94,89,0.9)), url('../images/carousel/1.png') center/cover no-repeat;
+  border-radius: 18px;
+  color: #fff;
+}
+
+.hero .lead {
+  color: rgba(255,255,255,0.9);
+}
+
+.floating-card {
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+}
+
+.section-title {
+  letter-spacing: 0.5px;
+}
+
+.pill-badge {
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  background: #f4f6f8;
+  color: #374151;
+}
+
+.room-card img {
+  height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.room-price {
+  color: var(--teal);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.soft-badge {
+  background: #eef8f7;
+  color: #0f6f65;
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-weight: 600;
+}
