@@ -98,9 +98,17 @@ if (isset($_POST['register'])) {
         $is_verified
     ];
 
-    if (insert($query, $values, 'ssssssssss')) {
+    // Fix: is_verified is integer (i), not string (s) - should be 'sssssssssi' not 'ssssssssss'
+    $result = insert($query, $values, 'sssssssssi');
+    if ($result) {
         echo 1;
     } else {
+        // Log error for debugging
+        error_log("Registration failed - Insert query returned: " . ($result ? 'true' : 'false'));
+        error_log("Values: " . print_r($values, true));
+        if (isset($GLOBALS['con'])) {
+            error_log("MySQL Error: " . mysqli_error($GLOBALS['con']));
+        }
         echo 'ins_failed';
     }
 }
