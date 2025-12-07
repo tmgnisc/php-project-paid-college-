@@ -1,4 +1,19 @@
 <?php
+// Enable error reporting for debugging (remove in production)
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display, but log
+ini_set('log_errors', 1);
+
+// Create a debug log file
+$debug_log = __DIR__ . '/../debug_registration.log';
+
+function debug_log($message) {
+    global $debug_log;
+    $timestamp = date('Y-m-d H:i:s');
+    $log_message = "[$timestamp] $message\n";
+    file_put_contents($debug_log, $log_message, FILE_APPEND);
+    error_log($message); // Also log to PHP error log
+}
 
 require('../admin/inc/db_config.php');
 require('../admin/inc/essentials.php');
@@ -35,45 +50,66 @@ function send_mail($uemail,$name,$token)
 */
 
 if (isset($_POST['register'])) {
+    debug_log("=== REGISTRATION ATTEMPT START ===");
+    debug_log("POST data received: " . print_r($_POST, true));
+    debug_log("FILES data: " . print_r($_FILES, true));
+    
     $data = filteration($_POST);
+    debug_log("Filtered data: " . print_r($data, true));
 
     // match password and confirm password
     if ($data['pass'] != $data['cpass']) {
+        debug_log("Password mismatch");
         echo 'pass_mismatch';
         exit;
     }
 
     // check user exist or not
+    debug_log("Checking if user exists: email=" . $data['email'] . ", phone=" . $data['phonenum']);
     $u_exist = select(
         "SELECT * FROM `user_cred` WHERE `email` = ? OR `phonenum`=? LIMIT 1",
         [$data['email'], $data['phonenum']],
         "ss"
     );
 
-    if (mysqli_num_rows($u_exist) != 0) {
-        $u_exist_fetch = mysqli_fetch_assoc($u_exist);
-        echo ($u_exist_fetch['email'] == $data['email']) ? 'email_already' : 'phone_already';
+    if (!$u_exist) {
+        debug_log("ERROR: Select query failed - " . mysqli_error($GLOBALS['con']));
+        echo 'ins_failed';
         exit;
     }
+
+    if (mysqli_num_rows($u_exist) != 0) {
+        $u_exist_fetch = mysqli_fetch_assoc($u_exist);
+        $reason = ($u_exist_fetch['email'] == $data['email']) ? 'email_already' : 'phone_already';
+        debug_log("User already exists: $reason");
+        echo $reason;
+        exit;
+    }
+    debug_log("User does not exist, proceeding with registration");
 
     // upload user image
     // Check if file was uploaded
     if (!isset($_FILES['profile']) || $_FILES['profile']['error'] !== UPLOAD_ERR_OK) {
-        error_log("Registration: File upload error - " . ($_FILES['profile']['error'] ?? 'no file'));
+        $error_code = $_FILES['profile']['error'] ?? 'no file';
+        debug_log("ERROR: File upload error - Code: $error_code");
         echo 'upd_failed';
         exit;
     }
     
+    debug_log("Uploading user image...");
     $img = uploadUserImage($_FILES['profile']);
+    debug_log("Image upload result: $img");
 
     if ($img == 'inv_img') {
+        debug_log("Invalid image format");
         echo 'inv_img';
         exit;
     } elseif ($img == 'upd_failed') {
-        error_log("Registration: Image upload failed for user: " . $data['email']);
+        debug_log("ERROR: Image upload failed for user: " . $data['email']);
         echo 'upd_failed';
         exit;
     }
+    debug_log("Image uploaded successfully: $img");
 
     // ❌ Token and email verification disabled
     // $token = bin2hex(random_bytes(16));
@@ -88,6 +124,7 @@ if (isset($_POST['register'])) {
 
     // password encryption
     $enc_pass = password_hash($data['pass'], PASSWORD_BCRYPT);
+    debug_log("Password hashed successfully");
 
     // insert query
     $query = "INSERT INTO `user_cred`(`name`, `email`, `address`, `phonenum`, `pincode`, `dob`, `profile`, 
@@ -105,21 +142,39 @@ if (isset($_POST['register'])) {
         $token,
         $is_verified
     ];
+    
+    debug_log("Preparing to insert user with values:");
+    debug_log("  Name: " . $data['name']);
+    debug_log("  Email: " . $data['email']);
+    debug_log("  Phone: " . $data['phonenum']);
+    debug_log("  Image: $img");
+    debug_log("  Token: '$token'");
+    debug_log("  Is Verified: $is_verified");
+    debug_log("  Query: $query");
+    debug_log("  Type string: sssssssssi");
 
     // Fix: is_verified is integer (i), not string (s) - should be 'sssssssssi' not 'ssssssssss'
+    debug_log("Executing insert query...");
     $result = insert($query, $values, 'sssssssssi');
+    debug_log("Insert result: " . var_export($result, true));
+    
+    if (isset($GLOBALS['con'])) {
+        $con = $GLOBALS['con'];
+        $mysql_error = mysqli_error($con);
+        $mysql_errno = mysqli_errno($con);
+        if ($mysql_error) {
+            debug_log("MySQL Error: $mysql_error (Errno: $mysql_errno)");
+        }
+    }
+    
     if ($result && $result > 0) {
-        error_log("Registration successful for user: " . $data['email']);
+        debug_log("SUCCESS: Registration completed for user: " . $data['email']);
+        debug_log("=== REGISTRATION ATTEMPT END - SUCCESS ===");
         echo 1;
     } else {
-        // Log error for debugging
-        error_log("Registration failed - Insert query returned: " . var_export($result, true));
-        error_log("Values: " . print_r($values, true));
-        if (isset($GLOBALS['con'])) {
-            $con = $GLOBALS['con'];
-            error_log("MySQL Error: " . mysqli_error($con));
-            error_log("MySQL Errno: " . mysqli_errno($con));
-        }
+        debug_log("ERROR: Registration failed - Insert query returned: " . var_export($result, true));
+        debug_log("Values array: " . print_r($values, true));
+        debug_log("=== REGISTRATION ATTEMPT END - FAILED ===");
         echo 'ins_failed';
     }
 }
