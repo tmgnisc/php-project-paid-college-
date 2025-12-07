@@ -94,13 +94,20 @@ if (!function_exists('insert')) {
        return $res;
        }
        else{
+        $error = mysqli_error($con);
+        error_log("Insert query execution failed: " . $error);
+        error_log("SQL: " . $sql);
+        error_log("Values: " . print_r($values, true));
         mysqli_stmt_close($stmt);
-         die("Query cannot be executed - Insert");
+        return false; // Return false instead of die()
        }
        
     }
     else{
-        die("Query cannot be prepared - Insert");
+        $error = mysqli_error($con);
+        error_log("Insert query preparation failed: " . $error);
+        error_log("SQL: " . $sql);
+        return false; // Return false instead of die()
     }
     }
 }

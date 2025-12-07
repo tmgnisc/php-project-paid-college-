@@ -120,6 +120,13 @@ function uploadSVGImage($image, $folder){
 function uploadUserImage($image)
 {
  $valid_mime = ['image/jpg','image/jpeg','image/png','image/webp'];
+    
+    // Check if file was uploaded
+    if (!isset($image['tmp_name']) || !is_uploaded_file($image['tmp_name'])) {
+        error_log("uploadUserImage: No file uploaded or invalid upload");
+        return 'upd_failed';
+    }
+    
     $img_mime = $image['type'];
 
     if(!in_array($img_mime,$valid_mime)){
@@ -130,21 +137,44 @@ function uploadUserImage($image)
         $rname = 'IMG_'.random_int(11111,99999).".jpeg";
 
         $img_path = UPLOAD_IMAGE_PATH.USERS_FOLDER.$rname;
+        
+        // Ensure directory exists
+        $upload_dir = UPLOAD_IMAGE_PATH.USERS_FOLDER;
+        if (!file_exists($upload_dir)) {
+            if (!mkdir($upload_dir, 0755, true)) {
+                error_log("uploadUserImage: Failed to create directory: " . $upload_dir);
+                return 'upd_failed';
+            }
+        }
 
+        // Try to create image resource
+        $img = false;
         if($ext == 'png' || $ext =='PNG'){
-            $img = imagecreatefrompng($image['tmp_name']);
+            $img = @imagecreatefrompng($image['tmp_name']);
         }
         else if($ext == 'webp' || $ext =='WEBP'){
-            $img = imagecreatefromwebp($image['tmp_name']);
+            $img = @imagecreatefromwebp($image['tmp_name']);
         }
         else{
-            $img = imagecreatefromjpeg($image['tmp_name']);
+            $img = @imagecreatefromjpeg($image['tmp_name']);
+        }
+        
+        // Check if image creation failed
+        if($img === false){
+            error_log("uploadUserImage: Failed to create image resource from: " . $image['tmp_name']);
+            return 'upd_failed';
         }
 
-        if(imagejpeg($img,$img_path,75)){
+        // Save image
+        $result = @imagejpeg($img, $img_path, 75);
+        imagedestroy($img); // Free memory
+        
+        if($result){
             return $rname;
         }
         else{
+            error_log("uploadUserImage: Failed to save image to: " . $img_path);
+            error_log("uploadUserImage: Directory writable: " . (is_writable($upload_dir) ? 'yes' : 'no'));
             return 'upd_failed';
         }
     }

@@ -57,12 +57,20 @@ if (isset($_POST['register'])) {
     }
 
     // upload user image
+    // Check if file was uploaded
+    if (!isset($_FILES['profile']) || $_FILES['profile']['error'] !== UPLOAD_ERR_OK) {
+        error_log("Registration: File upload error - " . ($_FILES['profile']['error'] ?? 'no file'));
+        echo 'upd_failed';
+        exit;
+    }
+    
     $img = uploadUserImage($_FILES['profile']);
 
     if ($img == 'inv_img') {
         echo 'inv_img';
         exit;
     } elseif ($img == 'upd_failed') {
+        error_log("Registration: Image upload failed for user: " . $data['email']);
         echo 'upd_failed';
         exit;
     }
@@ -100,14 +108,17 @@ if (isset($_POST['register'])) {
 
     // Fix: is_verified is integer (i), not string (s) - should be 'sssssssssi' not 'ssssssssss'
     $result = insert($query, $values, 'sssssssssi');
-    if ($result) {
+    if ($result && $result > 0) {
+        error_log("Registration successful for user: " . $data['email']);
         echo 1;
     } else {
         // Log error for debugging
-        error_log("Registration failed - Insert query returned: " . ($result ? 'true' : 'false'));
+        error_log("Registration failed - Insert query returned: " . var_export($result, true));
         error_log("Values: " . print_r($values, true));
         if (isset($GLOBALS['con'])) {
-            error_log("MySQL Error: " . mysqli_error($GLOBALS['con']));
+            $con = $GLOBALS['con'];
+            error_log("MySQL Error: " . mysqli_error($con));
+            error_log("MySQL Errno: " . mysqli_errno($con));
         }
         echo 'ins_failed';
     }
