@@ -110,6 +110,15 @@ if (isset($_POST['register'])) {
         exit;
     }
     debug_log("Image uploaded successfully: $img");
+    
+    // Verify image file actually exists on disk
+    $img_full_path = UPLOAD_IMAGE_PATH . USERS_FOLDER . $img;
+    if (!file_exists($img_full_path)) {
+        debug_log("ERROR: Image file does not exist at: $img_full_path");
+        echo 'upd_failed';
+        exit;
+    }
+    debug_log("Verified image file exists at: $img_full_path");
 
     // ❌ Token and email verification disabled
     // $token = bin2hex(random_bytes(16));
@@ -126,6 +135,9 @@ if (isset($_POST['register'])) {
     $enc_pass = password_hash($data['pass'], PASSWORD_BCRYPT);
     debug_log("Password hashed successfully");
 
+    // Use direct mysqli for better error control
+    $con = $GLOBALS['con'];
+    
     // insert query
     $query = "INSERT INTO `user_cred`(`name`, `email`, `address`, `phonenum`, `pincode`, `dob`, `profile`, 
     `password`, `token`, `is_verified`) VALUES (?,?,?,?,?,?,?,?,?,?)";
@@ -153,26 +165,79 @@ if (isset($_POST['register'])) {
     debug_log("  Query: $query");
     debug_log("  Type string: sssssssssi");
 
-    // Fix: is_verified is integer (i), not string (s) - should be 'sssssssssi' not 'ssssssssss'
-    debug_log("Executing insert query...");
-    $result = insert($query, $values, 'sssssssssi');
-    debug_log("Insert result: " . var_export($result, true));
+    // Use direct mysqli_prepare for better error handling
+    debug_log("Executing insert query using direct mysqli...");
+    $stmt = mysqli_prepare($con, $query);
     
-    if (isset($GLOBALS['con'])) {
-        $con = $GLOBALS['con'];
-        $mysql_error = mysqli_error($con);
-        $mysql_errno = mysqli_errno($con);
-        if ($mysql_error) {
-            debug_log("MySQL Error: $mysql_error (Errno: $mysql_errno)");
-        }
+    if (!$stmt) {
+        $error = mysqli_error($con);
+        $errno = mysqli_errno($con);
+        debug_log("ERROR: Failed to prepare statement - $error (Errno: $errno)");
+        echo 'ins_failed';
+        exit;
     }
     
-    if ($result && $result > 0) {
-        debug_log("SUCCESS: Registration completed for user: " . $data['email']);
-        debug_log("=== REGISTRATION ATTEMPT END - SUCCESS ===");
-        echo 1;
+    // Bind parameters
+    mysqli_stmt_bind_param($stmt, 'sssssssssi', 
+        $data['name'],
+        $data['email'],
+        $data['address'],
+        $data['phonenum'],
+        $data['pincode'],
+        $data['dob'],
+        $img,
+        $enc_pass,
+        $token,
+        $is_verified
+    );
+    
+    // Execute query
+    $execute_result = mysqli_stmt_execute($stmt);
+    $affected_rows = mysqli_stmt_affected_rows($stmt);
+    $insert_id = mysqli_insert_id($con);
+    
+    // Check for MySQL errors even if execute returned true
+    $mysql_error = mysqli_error($con);
+    $mysql_errno = mysqli_errno($con);
+    
+    mysqli_stmt_close($stmt);
+    
+    debug_log("Execute result: " . var_export($execute_result, true));
+    debug_log("Affected rows: $affected_rows");
+    debug_log("Insert ID: $insert_id");
+    
+    if ($mysql_error) {
+        debug_log("MySQL Error after execution: $mysql_error (Errno: $mysql_errno)");
+    }
+    
+    // Verify the user was actually inserted by querying the database
+    if ($execute_result && $affected_rows > 0) {
+        $verify_query = "SELECT `id`, `email`, `name` FROM `user_cred` WHERE `id` = ? LIMIT 1";
+        $verify_stmt = mysqli_prepare($con, $verify_query);
+        if ($verify_stmt) {
+            mysqli_stmt_bind_param($verify_stmt, 'i', $insert_id);
+            mysqli_stmt_execute($verify_stmt);
+            $verify_result = mysqli_stmt_get_result($verify_stmt);
+            $verify_data = mysqli_fetch_assoc($verify_result);
+            mysqli_stmt_close($verify_stmt);
+            
+            if ($verify_data) {
+                debug_log("SUCCESS: User verified in database - ID: " . $verify_data['id'] . ", Email: " . $verify_data['email']);
+                debug_log("=== REGISTRATION ATTEMPT END - SUCCESS ===");
+                echo 1;
+            } else {
+                debug_log("ERROR: User insert reported success but user not found in database!");
+                debug_log("Insert ID was: $insert_id");
+                echo 'ins_failed';
+            }
+        } else {
+            debug_log("WARNING: Could not verify user insertion, but insert appeared successful");
+            debug_log("=== REGISTRATION ATTEMPT END - SUCCESS (unverified) ===");
+            echo 1;
+        }
     } else {
-        debug_log("ERROR: Registration failed - Insert query returned: " . var_export($result, true));
+        debug_log("ERROR: Registration failed - Execute: " . var_export($execute_result, true) . ", Affected rows: $affected_rows");
+        debug_log("MySQL Error: $mysql_error (Errno: $mysql_errno)");
         debug_log("Values array: " . print_r($values, true));
         debug_log("=== REGISTRATION ATTEMPT END - FAILED ===");
         echo 'ins_failed';

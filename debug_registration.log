@@ -1,0 +1,60 @@
+[2025-12-26 07:46:50] === REGISTRATION ATTEMPT START ===
+[2025-12-26 07:46:50] POST data received: Array
+(
+    [name] => nischaltamang
+    [email] => nischal@gmail.com
+    [phonenum] => 213232323
+    [address] => Lalitpur
+    [pincode] => 44700
+    [dob] => 2025-12-01
+    [pass] => Newone22
+    [cpass] => Newone22
+    [register] => 
+)
+
+[2025-12-26 07:46:50] FILES data: Array
+(
+    [profile] => Array
+        (
+            [name] => hackathon 4.jpg
+            [type] => image/jpeg
+            [tmp_name] => /opt/lampp/temp/phpUlc3Oj
+            [error] => 0
+            [size] => 153280
+        )
+
+)
+
+[2025-12-26 07:46:50] Filtered data: Array
+(
+    [name] => nischaltamang
+    [email] => nischal@gmail.com
+    [phonenum] => 213232323
+    [address] => Lalitpur
+    [pincode] => 44700
+    [dob] => 2025-12-01
+    [pass] => Newone22
+    [cpass] => Newone22
+    [register] => 
+)
+
+[2025-12-26 07:46:50] Checking if user exists: email=nischal@gmail.com, phone=213232323
+[2025-12-26 07:46:50] User does not exist, proceeding with registration
+[2025-12-26 07:46:50] Uploading user image...
+[2025-12-26 07:46:50] Image upload result: IMG_75309.jpeg
+[2025-12-26 07:46:50] Image uploaded successfully: IMG_75309.jpeg
+[2025-12-26 07:46:50] Password hashed successfully
+[2025-12-26 07:46:50] Preparing to insert user with values:
+[2025-12-26 07:46:50]   Name: nischaltamang
+[2025-12-26 07:46:50]   Email: nischal@gmail.com
+[2025-12-26 07:46:50]   Phone: 213232323
+[2025-12-26 07:46:50]   Image: IMG_75309.jpeg
+[2025-12-26 07:46:50]   Token: ''
+[2025-12-26 07:46:50]   Is Verified: 1
+[2025-12-26 07:46:50]   Query: INSERT INTO `user_cred`(`name`, `email`, `address`, `phonenum`, `pincode`, `dob`, `profile`, 
+    `password`, `token`, `is_verified`) VALUES (?,?,?,?,?,?,?,?,?,?)
+[2025-12-26 07:46:50]   Type string: sssssssssi
+[2025-12-26 07:46:50] Executing insert query...
+[2025-12-26 07:46:50] Insert result: 1
+[2025-12-26 07:46:50] SUCCESS: Registration completed for user: nischal@gmail.com
+[2025-12-26 07:46:50] === REGISTRATION ATTEMPT END - SUCCESS ===
